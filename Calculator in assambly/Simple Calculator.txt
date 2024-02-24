@@ -1,0 +1,567 @@
+.model small
+.stack 100h
+.data
+welcome db "                    Welcome to Calulator",10,13,"$"
+new_line db 10,13,"$"
+msg0 db 10,13,"   Enter 1 to Continue Calculations",10,13,"   Enter 2 to Close the Calculator",10,13,"$"
+msg db "            In which form you want to give Input",10,13,"Enter 1 for Decimal",10,13,"Enter 2 for Binary",10,13,"Enter 3 for Hex",10,13,"$"
+
+msg1 db "           Which operation you want to perform",10,13,"Enter 1 for Adding",10,13,"Enter 2 for Subtracting",10,13,"Enter 3 for Multiplying",10,13,"Enter 4 for Division",10,13,"$"
+num1 dw 0,"$"
+num2 dw 0,"$"
+decmsg db "In decimal(0-65535): $"
+binmsg db "In Binary: $"
+hexmsg db "In Hex Form(0-FFFF): $"
+form db 0,"$"
+result dw 0,"$"
+oprator db 0,"$"
+for_dec dw 0,"$"
+first_num db "Enter First Number $"
+sec_num db 10,13,"Enter Second Number $"
+resultmsg db "Your Answer is: $"
+errmsg db 10,13,"Please Enter correct Values ",10,13,"$"
+outputmsg db "          In which Form you want to see result",10,13,"Enter 1 for Decimal",10,13,"Enter 2 for Binary",10,13,"Enter 3 for Hex",10,13,"$"
+.code
+                        ;Main Function
+main proc
+    mov ax,@data
+    mov ds,ax
+    mov dx,offset welcome
+    mov ah,09
+    int 21h
+    again:
+        mov dx,offset msg0
+        mov ah,09
+        int 21h
+        mov ah,01
+        int 21h
+        call valid_menu
+        cmp al,0
+        je menu_error
+        mov dx,offset new_line
+        mov ah,09
+        int 21h
+        mov cl,al
+        cmp cl,"2"
+        je exit0
+        call operator_input
+        call input_form
+        call number1_input
+        call input_form
+        call number2_input
+        call functionality
+        call output_form
+        jmp again
+    menu_error:
+        mov dx,offset errmsg
+        mov ah,09
+        int 21h
+        call main
+    exit0:
+        mov ah,4ch
+        int 21h
+main endp
+
+
+            ;Function For operator Input
+operator_input proc
+    mov dx,offset msg1
+    mov ah,09
+    int 21h
+    mov ah,01
+    int 21h
+    call valid_operator
+    cmp al,0
+    je operator_error
+    mov oprator,al
+    mov dx,offset new_line
+    mov ah,09
+    int 21h
+    jmp operator_exit
+    operator_error:
+        mov dx,offset errmsg
+        mov ah,09
+        int 21h
+        call operator_input
+    operator_exit:
+        ret
+operator_input endp
+
+                ;Input Form Menu Function
+
+input_form proc
+        mov dx,offset msg
+        mov ah,09
+        int 21h
+        mov ah,01
+        int 21h
+        call valid_form
+        cmp al,0
+        je form_error
+        mov form,al
+        mov dx,offset new_line
+        mov ah,09
+        int 21h
+        jmp form_exit
+    form_error:
+        mov dx,offset errmsg
+        mov ah,09
+        int 21h
+        call input_form
+    form_exit:
+        ret
+input_form endp
+
+
+ 
+            ;Perform DMAS Functionalities
+functionality proc
+    cmp oprator,'4'
+    je divide
+    cmp oprator,'3'
+    je multiply
+    cmp oprator,'2'
+    je subtract
+    cmp oprator,'1'
+    je addi
+    addi:
+        mov bx,num1
+        mov cx,num2
+        add bx,cx
+        mov result,bx
+        jmp exit2
+    subtract:
+        mov bx,num1
+        mov cx,num2
+        cmp bx,cx
+        jb negative
+        sub bx,cx
+        mov result,bx
+        jmp exit2
+        negative:
+        sub bx,cx
+        neg bx
+        mov result,bx
+        jmp exit2
+    multiply:
+        mov ax,num1
+        mov bx,num2
+        mul bx
+        mov result,ax
+        jmp exit2
+    divide:
+        mov dx,0
+        mov bx,num2
+        mov ax,num1
+        div bx
+        mov result,ax
+    exit2:
+        mov dx,offset new_line
+        mov ah,09
+        int 21h
+        ret
+functionality endp
+
+
+            ;Output form Function
+
+output_form proc
+    mov dx,offset outputmsg
+    mov ah,09
+    int 21h
+    mov ah,01
+    int 21h
+    call valid_outputform
+    cmp al,0
+    je outputform_error
+    mov dx,offset new_line
+    mov ah,09
+    int 21h
+    cmp al,31h
+    je decimal_form
+    cmp al,32h
+    je binary_form
+    cmp al,33h
+    je hexa_form
+    decimal_form:
+        mov dx,offset resultmsg
+        mov ah,09
+        int 21h
+        call dec_output
+        jmp ex
+    binary_form:
+        mov dx,offset resultmsg
+        mov ah,09
+        int 21h
+        call bin_output
+        jmp ex
+    hexa_form:
+        mov dx,offset resultmsg
+        mov ah,09
+        int 21h
+        call hex_output
+        jmp ex
+    outputform_error:
+        mov dx,offset errmsg
+        mov ah,09
+        int 21h
+        call output_form
+    ex:
+        ret
+output_form endp
+
+
+;Numbers Input Functions
+            ;First Number Input Function
+number1_input proc
+        cmp form,31h
+        je decimal_input1
+        cmp form,32h
+        je binary_input1
+        cmp form,33h
+        je hexa_input1
+    decimal_input1:
+        mov dx,offset first_num
+        mov ah,09
+        int 21h
+        call dec_input
+        mov bx,for_dec
+        mov num1,bx
+        jmp exit3
+    binary_input1:
+        mov dx,offset first_num
+        mov ah,09
+        int 21h
+        call bin_input
+        mov num1,bx
+        jmp exit3
+    hexa_input1:
+        mov dx,offset first_num
+        mov ah,09
+        int 21h
+        call hex_input
+        mov num1,bx
+    exit3:
+        mov dx,offset new_line
+        mov ah,09
+        int 21h
+        ret
+number1_input endp
+
+            ;Second Number  Input Function
+number2_input proc
+    cmp form,31h
+    je decimal_input2
+    cmp form,32h
+    je binary_input2
+    cmp form,33h
+    je hexa_input2
+    decimal_input2:
+        mov dx,offset sec_num
+        mov ah,09
+        int 21h
+        call dec_input
+        mov bx,for_dec
+        mov num2,bx
+        jmp exit4
+    binary_input2:
+        mov dx,offset sec_num
+        mov ah,09
+        int 21h
+        call bin_input
+        mov num2,bx
+        jmp exit4
+    hexa_input2:
+        mov dx,offset sec_num
+        mov ah,09
+        int 21h
+        call hex_input
+        mov num2,bx
+    exit4:
+        ret
+number2_input endp
+
+
+;Input Forms Functions
+                ;Function For Deciamal Input
+
+dec_input proc
+    mov for_dec,0
+    mov ax, for_dec
+    mov dx,offset decmsg
+    mov ah,09
+    int 21h
+    mov bx,10
+    iter1:
+        mov ah,01
+        int 21h
+        mov cl,al
+        cmp cl,13
+        je exit1
+        cmp al,"9"
+        jg decimal_error
+        cmp al,"0"
+        jl decimal_error
+        mov ax,for_dec
+        mul bx
+        sub cl,30h
+        add al,cl
+        mov for_dec,ax
+        jmp iter1
+    decimal_error:
+        mov dx,offset errmsg
+        mov ah,09
+        int 21h
+        mov for_dec,0000h
+        call dec_input
+    exit1:
+        ret
+dec_input endp
+
+            ;Function For Binary Input
+bin_input proc
+    mov dx,offset binmsg
+    mov ah,09
+    int 21h
+    mov cx,16
+    mov bx,0
+    bin_iter:
+        mov ah,01
+        int 21h
+        cmp al,13
+        je binary_exit
+        call valid_binary
+        cmp al,"n"
+        je binary_error
+        sub al,30h
+        shl bx,1
+        or bl,al
+        dec cx
+        jnz bin_iter
+        jmp binary_exit
+    binary_error:
+        mov dx,offset errmsg
+        mov ah,09
+        int 21h
+        call bin_input
+    binary_exit:
+        ret
+bin_input endp
+
+
+            ;Function For Hex Input
+hex_input proc
+    mov dx,offset hexmsg
+    mov ah,09
+    int 21h
+    mov cx,4
+    mov bx,0
+    hex_iter2:
+        mov ah,01
+        int 21h
+        cmp al,13
+        je hex_exit2
+        call valid_hex
+        cmp al,"n"
+        je hex_error
+        cmp al,39h
+        jbe digit
+        cmp al,61h
+        jae lower_to_upper
+        sub al,37h
+        jmp hex_exit
+    digit:
+        sub al,30h
+        jmp hex_exit
+    lower_to_upper:
+        sub al,57h
+        jmp hex_exit
+    hex_error:
+        mov dx,offset errmsg
+        mov ah,09
+        int 21h
+        call hex_input
+        ret
+    hex_exit:
+        shl bx,1
+        shl bx,1
+        shl bx,1
+        shl bx,1
+        or bl,al
+        dec cx
+        jnz hex_iter2
+    hex_exit2:
+        ret
+hex_input endp
+
+;Output Forms Functions
+
+            ;Function For Decimal Output
+dec_output proc
+    mov cx,0
+    mov bx,10
+    mov ax,result
+    iter2:
+        mov dx,0
+        div bx
+        push dx
+        inc cx
+        cmp ax,0
+        jne iter2
+    printing_loop:
+        pop dx
+        and dx,0fh
+        add dl,30h
+        mov ah,02
+        int 21h
+        dec cx
+        jnz printing_loop
+        ret
+dec_output endp
+
+
+            ;Function For Binary Output
+bin_output proc
+    mov cx,16
+    mov bx,result
+    output_iter2:
+        shl bx,1
+        jc one1
+        mov dl,30h
+        mov ah,02
+        int 21h
+        jmp bin_exit
+    one1:
+        mov dl,31h
+        mov ah,02
+        int 21h
+    bin_exit:
+        dec cx
+        jnz output_iter2
+        ret
+bin_output endp
+
+
+
+            ;Function For Hex Output
+
+hex_output proc
+    mov cx,4
+    mov bx,result
+    hex_out_iter2:
+        rol bx,1
+        rol bx,1
+        rol bx,1
+        rol bx,1
+        mov dl,bl
+        and dl,0fh
+        cmp dl,9h
+        jbe digit1
+        add dl,37h
+        jmp hex_exit1
+    digit1:
+        add dl,30h
+    hex_exit1:
+        mov ah,02
+        int 21h
+        dec cx
+        jnz hex_out_iter2
+        ret
+hex_output endp
+
+
+
+;Error Handling Functions
+
+
+            ;Error check for Input form
+
+valid_form proc
+    cmp al, '1'
+    jl not_digit
+    cmp al, '3'
+    jg not_digit
+    ret
+not_digit:
+    mov al, 0
+    ret
+valid_form endp
+
+            ;Error check for output form
+valid_outputform proc
+    cmp al, '1'
+    jl notdigit
+    cmp al, '3'
+    jg notdigit
+    ret
+notdigit:
+    mov al, 0
+    ret
+valid_outputform endp
+            ;Error check for operator
+valid_operator proc
+    cmp al, '1'
+    jl not_digit1
+    cmp al, '4'
+    jg not_digit1
+    ret
+not_digit1:
+    mov al, 0
+    ret
+    valid_operator endp
+
+            ;Error check for menu
+valid_menu proc
+    cmp al, '1'
+    jl not_digit3
+    cmp al, '2'
+    jg not_digit3
+    ret
+not_digit3:
+    mov al, 0
+    ret
+    valid_menu endp
+            ;Error check for Decimal value
+valid_decimal proc
+    cmp cl, '0'
+    jl not_decimal
+    cmp cl, '9'
+    jg not_decimal
+    ret
+not_decimal:
+    mov cl,0
+    ret
+valid_decimal endp  
+    
+            ;Error check for binary value
+valid_binary proc
+    cmp al, '0'
+    jl not_binary
+    cmp al, '1'
+    jg not_binary
+    ret
+not_binary:
+    mov al,"n"
+    ret
+valid_binary endp
+            ;Error check for Hex value
+valid_hex proc
+     cmp al,"0"
+     jl not_hex
+     cmp al,"9"
+     jle valid
+     cmp al,"A"
+     jl not_hex
+     cmp al,"F"
+     jle valid
+     cmp al,"a"
+     jl not_hex
+     cmp al,"f"
+     jle valid
+not_hex:
+    mov al,"n"
+    ret
+valid:
+    ret
+    valid_hex endp     
+end main
